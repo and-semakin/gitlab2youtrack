@@ -6,14 +6,12 @@ from youtrack.youtrack import YouTrackException
 
 gitlab_url = 'https://gitlab.ezmp.kbinform.ru/api/v4/'
 gitlab_api_token = '2FHbXaGd-i59EbeGV4dW'
+gitlab_per_page = 1000
 
 youtrack_url = 'http://youtrack.dev.kbinform.ru/'
-youtrack_login = 'SemakinAE'
-youtrack_password = getpass.getpass(prompt='YouTrack Password: ')
+youtrack_login = 'GitLab'
+youtrack_password = 'gitlab'
 youtrack = Connection(youtrack_url, youtrack_login, youtrack_password)
-
-yt_projects = youtrack.get_projects()
-print(yt_projects)
 
 
 def get_user_by_id(id):
@@ -59,15 +57,25 @@ def get_user_by_login(login):
     }
     return users[login]
 
+# youtrack project
+yt_project_id = 'ezmp'
+print(yt_project_id)
+# create youtrack project if not exists
+try:
+    yt_project = youtrack.get_project(yt_project_id)
+except YouTrackException:
+    youtrack.create_project_detailed(yt_project_id, 'ЕЗМП', 'Единая Защищенная Мобильная Платформа', youtrack_login)
+    yt_project = youtrack.get_project(yt_project_id)
+
 
 # list gitlab projects
-projects = requests.get(f'{gitlab_url}projects?private_token={gitlab_api_token}').json()
+projects = requests.get(f'{gitlab_url}projects?per_page={gitlab_per_page}&private_token={gitlab_api_token}').json()
 
 # print(projects)
 for p in projects:
     project_id = p['id']
     project_path = p['path']
-    issues = requests.get(f'{gitlab_url}projects/{project_id}/issues?scope=all&private_token={gitlab_api_token}').json()
+    issues = requests.get(f'{gitlab_url}projects/{project_id}/issues?scope=all&per_page={gitlab_per_page}&private_token={gitlab_api_token}').json()
 
     # print project name
     print()
@@ -76,19 +84,25 @@ for p in projects:
     # pprint(p)
     # exit()
 
-    yt_project_id = project_path.replace('-', '_')
-    print(yt_project_id)
-
-    # create youtrack project if not exists
-    try:
-        project = youtrack.get_project(yt_project_id)
-    except YouTrackException:
-        youtrack.create_project_detailed(yt_project_id, p['name'], p['description'], get_user_by_id(p['creator_id']))
-        project = youtrack.get_project(yt_project_id)
-
     for issue in issues:
+        issue_iid = issue['iid']
         assignee = get_user_by_id(issue['assignee']['id']) if issue['assignee'] is not None else None
-        summary = ''
+        summary = issue['title']
         description = issue['description']
-        youtrack.create_issue(project, assignee, summary, description)
-        pprint(issue)
+        response = youtrack.create_issue(yt_project_id, assignee, summary, description)
+        yt_issue_id = response[0]['location'].split('/')[-1]
+        # pprint(issue)
+        print(" *", summary)
+
+        comments = requests.get(
+            f'{gitlab_url}projects/{project_id}/issues/{issue_iid}/notes?per_page={gitlab_per_page}&private_token={gitlab_api_token}').json()
+        for comment in comments:
+            username = comment['author']['name']
+            text = comment['body']
+            created_at = comment['created_at']
+
+            full_text = f"{username} ({created_at}):\n\n{text}"
+
+            youtrack.execute_command(yt_issue_id, 'comment', full_text)
+            # pprint(comment)
+            print('   *', username, created_at)
