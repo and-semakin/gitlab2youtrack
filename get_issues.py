@@ -70,10 +70,10 @@ except YouTrackException:
 
 
 # list gitlab projects
-projects = requests.get(f'{gitlab_url}projects?per_page={gitlab_per_page}&private_token={gitlab_api_token}').json()
+_projects = requests.get(f'{gitlab_url}projects?per_page={gitlab_per_page}&private_token={gitlab_api_token}').json()
 
 # print(projects)
-for p in projects:
+for p in _projects:
     project_id = p['id']
     project_path = p['path']
     issues = requests.get(f'{gitlab_url}projects/{project_id}/issues?scope=all'

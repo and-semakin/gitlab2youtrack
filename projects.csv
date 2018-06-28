@@ -1,0 +1,21 @@
+gitlab_project_pattern;youtrack_project_id;youtrack_project_name
+chel-taxi*;chel_taxi;ЕЗМП. Такси Члб
+chel-medicine*;chel_medicine;ЕЗМП. Медицина Члб
+medicine;chel_medicine;ЕЗМП. Медицина Члб
+smev2-chel-medicine;chel_medicine;ЕЗМП. Медицина Члб
+ekb-taxi;ekb_taxi;ЕЗМП. Такси Екб
+taxi*;ekb_taxi;ЕЗМП. Такси Екб
+ekb-medicine;ekb_medicine;ЕЗМП. Медицина Екб
+alcohol;ekb_alcohol;ЕЗМП. Алкоголь Екб
+ekb-alcohol;ekb_alcohol;ЕЗМП. Алкоголь Екб
+state-property;ekb_state_property;ЕЗМП. Госимущество Екб
+ekb-state-property;ekb_state_property;ЕЗМП. Госимущество Екб
+building;ekb_building;ЕЗМП. ИЖС Екб
+ekb-building;ekb_building;ЕЗМП. ИЖС Екб
+home-book;ekb_home_book;ЕЗМП. ЕЖД Екб
+ekb-home-book;ekb_home_book;ЕЗМП. ЕЖД Екб
+investments;ekb_investments;ЕЗМП. Инвест Екб
+ekb-investments;ekb_investments;ЕЗМП. Инвест Екб
+advertising;ekb_advertising;ЕЗМП. Реклама Екб
+ekb-advertising;ekb_advertising;ЕЗМП. Реклама Екб
+*;ezmp;ЕЗМП 2.0. Продукт
