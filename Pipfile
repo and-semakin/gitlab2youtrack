@@ -9,6 +9,7 @@ dohq-youtrack = "*"
 ipython = "*"
 python-gitlab = "*"
 globre = "*"
+transliterate = "*"
 
 [dev-packages]
 
