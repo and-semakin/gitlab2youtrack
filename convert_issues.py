@@ -2,14 +2,25 @@ import gitlab
 import csv
 from pprint import pprint
 import getpass
+import os
+import requests
 import globre
+from transliterate import translit, get_available_language_codes
+
 from youtrack.connection import Connection
 from youtrack.youtrack import YouTrackException
 
-from monkey_patches import create_issue
+from monkey_patches import create_issue, create_user_detailed, create_attachment
+from check_attachments import get_attachments_urls
+from gitlab_auth import get_gitlab_session
+
+files_dir = 'files'
+os.makedirs(files_dir, exist_ok=True)
 
 gitlab_url = 'https://gitlab.ezmp.kbinform.ru'
 gitlab_api_token = '2FHbXaGd-i59EbeGV4dW'
+gitlab_login = 'semakinae@kbinform.ru'
+gitlab_password = '*******'
 gitlab_per_page = 10000
 gl = gitlab.Gitlab(gitlab_url, gitlab_api_token)
 
@@ -17,12 +28,14 @@ youtrack_url = 'http://192.168.100.42:8080/'
 youtrack_login = 'admin'
 youtrack_password = 'P@ssw0rd'
 
-youtrack_default_user = 'user'
+youtrack_default_user = 'admin'
 youtrack_new_user_email = '{username}@kbinform.ru'
 youtrack_new_user_password = '11111'
 
 # apply monkey patches
 Connection.create_issue = create_issue
+Connection.create_user_detailed = create_user_detailed
+Connection.create_attachment = create_attachment
 
 youtrack = Connection(youtrack_url, youtrack_login, youtrack_password)
 
@@ -49,8 +62,7 @@ def get_user_by_login(login, default_user=youtrack_default_user):
 def yt_create_users(users):
     # create group and add all users
     try:
-        content = youtrack._put(
-            '/admin/group/%s?autoJoin=true' % 'admins')
+        youtrack._put('/admin/group/%s?autoJoin=true' % 'admins')
         print('*' * 80)
         input(f"Add user '{youtrack_login}' to group 'admins' and press any key...")
         input("Now grant 'sysadmin' group rights to role 'admins' and press any key...")
@@ -64,8 +76,19 @@ def yt_create_users(users):
     print('Creating users...')
     for login in users.values():
         email = youtrack_new_user_email.format(username=login)
-        youtrack.create_user_detailed(login, '', email, '')
-        print('*', login)
+        try:
+            youtrack.create_user_detailed(login=login,
+                                          full_name='',
+                                          email=email,
+                                          jabber='',
+                                          password=youtrack_new_user_password)
+            print('*', login)
+        except YouTrackException as e:
+            if e.response.status in (409,):
+                print('*', login, '(exists)')
+            else:
+                print('*', login, '(error)')
+                raise e
 
 
 def read_projects():
@@ -155,6 +178,11 @@ issue_count = 0
 note_count = 0
 gitlab_users = []
 
+
+# auth in browser
+browser = get_gitlab_session(gitlab_url, gitlab_login, gitlab_password)
+
+
 # print(gl_projects)
 for p in gl_projects:
     project_count += 1
@@ -181,13 +209,35 @@ for p in gl_projects:
 
         issue_iid = issue.iid
         assignee = get_user_by_login(issue.assignee['username']) if issue.assignee is not None else None
+        author = get_user_by_login(issue.author['username'])
         summary = issue.title
         description = issue.description
+
         subsystem = project_path
         state = 'fixed' if issue.state == 'closed' else None
 
         # pprint(issue)
         print(f" * [{issue.author['username']}, {issue.iid}] {summary}")
+
+        files = get_attachments_urls(description)
+        attach = []
+        if files:
+            print('=' * 20, '> FILE')
+            for relative_url in files:
+                file_name = translit(relative_url.split('/')[-1], 'ru', reversed=True)
+                url = p.web_url + relative_url + f'?access_token={gitlab_api_token}'
+                headers = {'PRIVATE-TOKEN': gitlab_api_token}
+                print(url)
+                r = browser.get(url, headers=headers)
+
+                description = description.replace(relative_url, file_name)
+
+                attach.append({
+                    'author_login': author,
+                    'files': {
+                        file_name: r.content
+                    }
+                })
 
         yt_project = get_project_by_pattern(p.name)
         yt_project_id = yt_project['youtrack_project_id']
@@ -198,6 +248,9 @@ for p in gl_projects:
                                          subsystem=subsystem,
                                          state=state)
         yt_issue_id = response[0]['location'].split('/')[-1]
+
+        for f in attach:
+            youtrack.create_attachment(yt_issue_id, **f)
 
         notes = issue.notes.list(page=1, per_page=gitlab_per_page, order_by='created_at', sort='asc')
         for note in notes:
