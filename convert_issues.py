@@ -4,6 +4,7 @@ from pprint import pprint
 import os
 import globre
 from transliterate import translit
+from datetime import timedelta
 
 from youtrack.connection import Connection
 from youtrack.youtrack import YouTrackException
@@ -11,6 +12,7 @@ from youtrack.youtrack import YouTrackException
 from monkey_patches import create_issue, create_user_detailed, create_attachment, create_custom_field_detailed
 from check_attachments import get_attachments_urls
 from gitlab_auth import get_gitlab_session
+from time_spent import get_time_spent, timedelta_to_string
 
 files_dir = 'files'
 os.makedirs(files_dir, exist_ok=True)
@@ -297,6 +299,8 @@ for p in gl_projects:
         for f in attach:
             youtrack.create_attachment(yt_issue_id, **f)
 
+        issue_time_spent = timedelta()
+
         notes = issue.notes.list(page=1, per_page=gitlab_per_page, order_by='created_at', sort='asc')
         for note in notes:
             note_count += 1
@@ -310,9 +314,19 @@ for p in gl_projects:
 
             full_text = f"{username} ({created_at}):\n\n{text}"
 
+            # post comment
             youtrack.execute_command(yt_issue_id, 'comment', full_text, run_as=get_user_by_login(note.author['username']))
-            # pprint(comment)
             print('   *', note.id,  username, created_at)
+
+            note_time_spent = get_time_spent(text)
+            issue_time_spent += note_time_spent
+            if note_time_spent:
+                print('   *** Time spent detected in text:', text, note_time_spent)
+
+        # update spent time on issue
+        youtrack.execute_command(yt_issue_id, 'Длительность {ts}'.format(
+            ts=timedelta_to_string(issue_time_spent)
+        ))
 
 print('project_count', project_count)
 print('issue_count', issue_count)
