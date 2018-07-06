@@ -10,6 +10,7 @@ ipython = "*"
 python-gitlab = "*"
 globre = "*"
 transliterate = "*"
+pytest = "*"
 
 [dev-packages]
 
