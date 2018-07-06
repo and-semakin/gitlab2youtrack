@@ -1,16 +1,14 @@
 import gitlab
 import csv
 from pprint import pprint
-import getpass
 import os
-import requests
 import globre
-from transliterate import translit, get_available_language_codes
+from transliterate import translit
 
 from youtrack.connection import Connection
 from youtrack.youtrack import YouTrackException
 
-from monkey_patches import create_issue, create_user_detailed, create_attachment
+from monkey_patches import create_issue, create_user_detailed, create_attachment, create_custom_field_detailed
 from check_attachments import get_attachments_urls
 from gitlab_auth import get_gitlab_session
 
@@ -36,6 +34,7 @@ youtrack_new_user_password = '11111'
 Connection.create_issue = create_issue
 Connection.create_user_detailed = create_user_detailed
 Connection.create_attachment = create_attachment
+Connection.create_custom_field_detailed = create_custom_field_detailed
 
 youtrack = Connection(youtrack_url, youtrack_login, youtrack_password)
 
@@ -74,7 +73,7 @@ def yt_create_users(users):
 
     print()
     print('Creating users...')
-    for login in users.values():
+    for login in set(users.values()):
         email = youtrack_new_user_email.format(username=login)
         try:
             youtrack.create_user_detailed(login=login,
@@ -161,11 +160,57 @@ def yt_create_subsystems():
                 raise e
 
 
+def yt_create_customfields():
+    def create_custom_field(name, field_type):
+        print(f'Creating custom field {name}... ', end='')
+        try:
+            youtrack.create_custom_field_detailed(
+                name,
+                field_type,
+                is_private=False,
+                default_visibility=True,
+                auto_attached=True,
+                additional_params={
+                    'canBeEmpty': True,
+                }
+            )
+            print("OK")
+        except YouTrackException as e:
+            if e.response.status in (409,):
+                print('exists')
+            else:
+                print('error')
+                raise e
+
+    fields = (
+        {
+            'name': 'Срок начала',
+            'field_type': 'date and time'
+        },
+        {
+            'name': 'Срок окончания',
+            'field_type': 'date and time'
+        },
+        {
+            'name': 'Длительность',
+            'field_type': 'period'
+        },
+        {
+            'name': 'Бэклог',
+            'field_type': 'state[1]'
+        },
+    )
+    print()
+    for field in fields:
+        create_custom_field(**field)
+
+
 # init script
 read_users()
 read_projects()
 
 yt_create_users(_users)
+yt_create_customfields()
 yt_create_projects(_projects)
 yt_create_subsystems()
 
