@@ -11,6 +11,7 @@ from utils.monkey_patches import create_issue, create_user_detailed, create_atta
 from utils.attachments import get_attachments_urls
 from utils.gitlab_auth import get_gitlab_session
 from utils.time_spent import get_time_spent, timedelta_to_string
+from utils.reformat_datetime import reformat_datetime
 
 from config import (gitlab_url, gitlab_api_token, gitlab_per_page, gitlab_password, gitlab_login,
                     youtrack_url, youtrack_login, youtrack_password, youtrack_default_user,
@@ -303,12 +304,17 @@ for p in gl_projects:
 
             username = note.author['name']
             text = note.body
-            created_at = note.created_at
+            created_at = reformat_datetime(note.created_at)
 
             full_text = f"{username} ({created_at}):\n\n{text}"
 
             # post comment
-            youtrack.execute_command(yt_issue_id, 'comment', full_text, run_as=get_user_by_login(note.author['username']))
+            youtrack.execute_command(
+                yt_issue_id,
+                'comment',
+                full_text,
+                run_as=get_user_by_login(note.author['username'])
+            )
             print('   *', note.id,  username, created_at)
 
             note_time_spent = get_time_spent(text)
