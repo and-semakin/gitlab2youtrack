@@ -11,6 +11,7 @@ python-gitlab = "*"
 globre = "*"
 transliterate = "*"
 pytest = "*"
+python-dateutil = "*"
 
 [dev-packages]
 

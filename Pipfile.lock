@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d261fbaa3783ced536edde47172bfedb6b663d984c192d91c2aef48692ff3b2d"
+            "sha256": "a579d5374c8c8af5d5894529737eda102c034bf0d3d92ca3b1bc5a72f0c1a5c7"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -144,7 +144,6 @@
                 "sha256:d345c8fe681115900d6da8d048ba67c25df42973bda370783cd58826442dcd7c",
                 "sha256:e160a7fcf25762bb60efc7e171d4497ff1d8d2d75a3d0df7a21b76821ecbf5c5"
             ],
-            "markers": "python_version != '3.2.*' and python_version != '3.1.*' and python_version >= '2.7' and python_version != '3.0.*' and python_version != '3.3.*'",
             "version": "==0.6.0"
         },
         "prompt-toolkit": {
@@ -167,7 +166,6 @@
                 "sha256:3fd59af7435864e1a243790d322d763925431213b6b8529c6ca71081ace3bbf7",
                 "sha256:e31fb2767eb657cbde86c454f02e99cb846d3cd9d61b318525140214fdc0e98e"
             ],
-            "markers": "python_version != '3.2.*' and python_version != '3.1.*' and python_version >= '2.7' and python_version != '3.0.*' and python_version != '3.3.*'",
             "version": "==1.5.4"
         },
         "pygments": {
@@ -184,6 +182,14 @@
             ],
             "index": "pypi",
             "version": "==3.6.3"
+        },
+        "python-dateutil": {
+            "hashes": [
+                "sha256:1adb80e7a782c12e52ef9a8182bebeb73f1d7e24e374397af06fb4956c8dc5c0",
+                "sha256:e27001de32f627c22380a688bcc43ce83504a7bc5da472209b4c70f02829f0b8"
+            ],
+            "index": "pypi",
+            "version": "==2.7.3"
         },
         "python-gitlab": {
             "hashes": [
@@ -233,7 +239,6 @@
                 "sha256:a68ac5e15e76e7e5dd2b8f94007233e01effe3e50e8daddf69acfd81cb686baf",
                 "sha256:b5725a0bd4ba422ab0e66e89e030c806576753ea3ee08554382c14e685d117b5"
             ],
-            "markers": "python_version < '4' and python_version != '3.1.*' and python_version != '3.2.*' and python_version != '3.0.*' and python_version >= '2.6' and python_version != '3.3.*'",
             "version": "==1.23"
         },
         "wcwidth": {
