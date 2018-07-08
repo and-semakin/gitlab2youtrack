@@ -1,7 +1,5 @@
 import gitlab
 import csv
-from pprint import pprint
-import os
 import globre
 from transliterate import translit
 from datetime import timedelta
@@ -10,12 +8,9 @@ from youtrack.connection import Connection
 from youtrack.youtrack import YouTrackException
 
 from monkey_patches import create_issue, create_user_detailed, create_attachment, create_custom_field_detailed
-from check_attachments import get_attachments_urls
-from gitlab_auth import get_gitlab_session
-from time_spent import get_time_spent, timedelta_to_string
-
-files_dir = 'files'
-os.makedirs(files_dir, exist_ok=True)
+from utils.attachments import get_attachments_urls
+from utils.gitlab_auth import get_gitlab_session
+from utils.time_spent import get_time_spent, timedelta_to_string
 
 gitlab_url = 'https://gitlab.ezmp.kbinform.ru'
 gitlab_api_token = '2FHbXaGd-i59EbeGV4dW'
@@ -66,7 +61,7 @@ def yt_create_users(users):
         youtrack._put('/admin/group/%s?autoJoin=true' % 'admins')
         print('*' * 80)
         input(f"Add user '{youtrack_login}' to group 'admins' and press any key...")
-        input("Now grant 'sysadmin' group rights to role 'admins' and press any key...")
+        input("Now grant 'sysadmin' role to group 'admins' and press any key...")
     except YouTrackException as e:
         if e.response.status in (409,):
             print("Group 'admins' already exists.")
@@ -269,12 +264,11 @@ for p in gl_projects:
         files = get_attachments_urls(description)
         attach = []
         if files:
-            print('=' * 20, '> FILE')
             for relative_url in files:
                 file_name = translit(relative_url.split('/')[-1], 'ru', reversed=True)
                 url = p.web_url + relative_url + f'?access_token={gitlab_api_token}'
                 headers = {'PRIVATE-TOKEN': gitlab_api_token}
-                print(url)
+                print('   FILE:', url)
                 r = browser.get(url, headers=headers)
 
                 description = description.replace(relative_url, file_name)

@@ -1,7 +1,7 @@
 import pytest
 from datetime import timedelta
 
-from time_spent import get_time_spent, timedelta_to_string
+from utils.time_spent import get_time_spent, timedelta_to_string
 
 
 @pytest.mark.parametrize(
