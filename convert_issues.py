@@ -234,6 +234,14 @@ note_count_total = 0
 gitlab_users = []
 
 
+# YouTrack sessions to create issues from author
+youtrack_session = {}
+
+# check YouTrack passwords before doing any work
+for yt_credentials in _users.values():
+    youtrack_session[yt_credentials['username']] = Connection(
+        youtrack_url, yt_credentials['username'], yt_credentials['password'])
+
 # authenticate in GitLab via requests to download files
 file_downloader = get_gitlab_session(gitlab_url, gitlab_login, gitlab_password)
 
@@ -252,6 +260,9 @@ for p in gl_projects:
 
     for issue in issues:
         issue_count += 1
+
+        yt_credentials = _users[issue.author['username']]
+        session = youtrack_session[yt_credentials['username']]
 
         if issue.author['username'] not in gitlab_users:
             gitlab_users.append(issue.author['username'])
@@ -291,7 +302,7 @@ for p in gl_projects:
 
         yt_project = get_project_by_pattern(p.name)
         yt_project_id = yt_project['youtrack_project_id']
-        response = youtrack.create_issue(project=yt_project_id,
+        response = session.create_issue(project=yt_project_id,
                                          assignee=assignee,
                                          summary=summary,
                                          description=description,
