@@ -13,10 +13,12 @@ from utils.gitlab_auth import get_gitlab_session
 from utils.time_spent import get_time_spent, timedelta_to_string
 from utils.reformat_datetime import reformat_datetime
 from utils.notes_blacklist import is_blacklisted
+from utils.replace_checkboxes import replace_numbered_checkboxes
+from utils.replace_usernames import replace_usernames
 
 from config import (gitlab_url, gitlab_api_token, gitlab_per_page, gitlab_password, gitlab_login,
                     youtrack_url, youtrack_login, youtrack_password, youtrack_default_user,
-                    youtrack_new_user_password, youtrack_new_user_email)
+                    youtrack_new_user_email)
 
 # apply monkey patches
 Connection.create_issue = create_issue
@@ -37,12 +39,15 @@ _projects = None
 
 def read_users(filename='users.csv'):
     """Read users from users.csv file."""
-    global _users
+    global _users, _users_reversed
     _users = dict()
     with open(filename) as f:
         reader = csv.DictReader(f, delimiter=';')
         for u in reader:
-            _users[u['gitlab_username']] = u['youtrack_username']
+            _users[u['gitlab_username']] = {
+                'username': u['youtrack_username'],
+                'password': u['youtrack_password']
+            }
 
 
 def get_user_by_login(login, default_user=youtrack_default_user):
@@ -50,7 +55,7 @@ def get_user_by_login(login, default_user=youtrack_default_user):
     if _users is None:
         read_users()
 
-    return _users[login] if login in _users else default_user
+    return _users[login]['username'] if login in _users else default_user
 
 
 def yt_create_users(users):
@@ -69,21 +74,23 @@ def yt_create_users(users):
             raise e
 
     print()
-    print('Creating users...')
-    for login in set(users.values()):
+    print('Creating users:')
+    for gl_login, yt_credentials in users.items():
+        login = yt_credentials['username']
+        password = yt_credentials['password']
         email = youtrack_new_user_email.format(username=login)
         try:
+            print(f'* {login}... ', end='')
             youtrack.create_user_detailed(login=login,
                                           full_name='',
                                           email=email,
                                           jabber='',
-                                          password=youtrack_new_user_password)
-            print('*', login)
+                                          password=password)
         except YouTrackException as e:
             if e.response.status in (409,):
-                print('*', login, '(exists)')
+                print('exists')
             else:
-                print('*', login, '(error)')
+                print('error:')
                 raise e
 
 
@@ -222,7 +229,8 @@ gl_projects = gl.projects.list(page=1, per_page=gitlab_per_page)
 
 project_count = 0
 issue_count = 0
-note_count = 0
+note_count_posted = 0
+note_count_total = 0
 gitlab_users = []
 
 
@@ -255,7 +263,7 @@ for p in gl_projects:
         assignee = get_user_by_login(issue.assignee['username']) if issue.assignee is not None else None
         author = get_user_by_login(issue.author['username'])
         summary = issue.title
-        description = issue.description
+        description = replace_usernames(replace_numbered_checkboxes(issue.description), _users)
 
         subsystem = project_path
         state = 'fixed' if issue.state == 'closed' else None
@@ -298,18 +306,37 @@ for p in gl_projects:
 
         notes = issue.notes.list(page=1, per_page=gitlab_per_page, order_by='created_at', sort='asc')
         for note in notes:
-            note_count += 1
+            note_count_total += 1
 
             if note.author['username'] not in gitlab_users:
                 gitlab_users.append(note.author['username'])
 
             username = note.author['name']
-            text = note.body
+            text = replace_usernames(replace_numbered_checkboxes(note.body), _users)
             created_at = reformat_datetime(note.created_at)
 
             if is_blacklisted(text):
                 print('   * IGNORED', note.id, username, created_at)
                 continue
+
+            files = get_attachments_urls(note.body)
+            attach = []
+            if files:
+                for relative_url in files:
+                    file_name = translit(relative_url.split('/')[-1], 'ru', reversed=True)
+                    url = p.web_url + relative_url + f'?access_token={gitlab_api_token}'
+                    headers = {'PRIVATE-TOKEN': gitlab_api_token}
+                    print('     FILE:', url)
+                    r = file_downloader.get(url, headers=headers)
+
+                    text = text.replace(relative_url, file_name)
+
+                    attach.append({
+                        'author_login': author,
+                        'files': {
+                            file_name: r.content
+                        }
+                    })
 
             full_text = f"{username} ({created_at}):\n\n{text}"
 
@@ -321,11 +348,15 @@ for p in gl_projects:
                 run_as=get_user_by_login(note.author['username'])
             )
             print('   *', note.id,  username, created_at)
+            note_count_posted += 1
+
+            for f in attach:
+                youtrack.create_attachment(yt_issue_id, **f)
 
             note_time_spent = get_time_spent(text)
             issue_time_spent += note_time_spent
             if note_time_spent:
-                print('   *** Time spent detected in text:', text, note_time_spent)
+                print('     *** Time spent detected in text:', text, note_time_spent)
 
         # update spent time on issue
         youtrack.execute_command(yt_issue_id, 'Длительность {ts}'.format(
@@ -334,5 +365,5 @@ for p in gl_projects:
 
 print('project_count', project_count)
 print('issue_count', issue_count)
-print('note_count', note_count)
+print('note_count, posted:', note_count_posted, 'total:', note_count_total)
 print('Done.')
