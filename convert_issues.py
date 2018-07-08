@@ -12,6 +12,7 @@ from utils.attachments import get_attachments_urls
 from utils.gitlab_auth import get_gitlab_session
 from utils.time_spent import get_time_spent, timedelta_to_string
 from utils.reformat_datetime import reformat_datetime
+from utils.notes_blacklist import is_blacklisted
 
 from config import (gitlab_url, gitlab_api_token, gitlab_per_page, gitlab_password, gitlab_login,
                     youtrack_url, youtrack_login, youtrack_password, youtrack_default_user,
@@ -305,6 +306,10 @@ for p in gl_projects:
             username = note.author['name']
             text = note.body
             created_at = reformat_datetime(note.created_at)
+
+            if is_blacklisted(text):
+                print('   * IGNORED', note.id, username, created_at)
+                continue
 
             full_text = f"{username} ({created_at}):\n\n{text}"
 
