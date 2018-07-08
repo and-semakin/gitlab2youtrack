@@ -7,25 +7,14 @@ from datetime import timedelta
 from youtrack.connection import Connection
 from youtrack.youtrack import YouTrackException
 
-from monkey_patches import create_issue, create_user_detailed, create_attachment, create_custom_field_detailed
+from utils.monkey_patches import create_issue, create_user_detailed, create_attachment, create_custom_field_detailed
 from utils.attachments import get_attachments_urls
 from utils.gitlab_auth import get_gitlab_session
 from utils.time_spent import get_time_spent, timedelta_to_string
 
-gitlab_url = 'https://gitlab.ezmp.kbinform.ru'
-gitlab_api_token = '2FHbXaGd-i59EbeGV4dW'
-gitlab_login = 'semakinae@kbinform.ru'
-gitlab_password = '*******'
-gitlab_per_page = 10000
-gl = gitlab.Gitlab(gitlab_url, gitlab_api_token)
-
-youtrack_url = 'http://192.168.100.42:8080/'
-youtrack_login = 'admin'
-youtrack_password = 'P@ssw0rd'
-
-youtrack_default_user = 'admin'
-youtrack_new_user_email = '{username}@kbinform.ru'
-youtrack_new_user_password = '11111'
+from config import (gitlab_url, gitlab_api_token, gitlab_per_page, gitlab_password, gitlab_login,
+                    youtrack_url, youtrack_login, youtrack_password, youtrack_default_user,
+                    youtrack_new_user_password, youtrack_new_user_email)
 
 # apply monkey patches
 Connection.create_issue = create_issue
@@ -33,22 +22,29 @@ Connection.create_user_detailed = create_user_detailed
 Connection.create_attachment = create_attachment
 Connection.create_custom_field_detailed = create_custom_field_detailed
 
+# create GitLab API object
+gl = gitlab.Gitlab(gitlab_url, gitlab_api_token)
+
+# create YouTrack API object
 youtrack = Connection(youtrack_url, youtrack_login, youtrack_password)
+
 
 _users = None
 _projects = None
 
 
-def read_users():
+def read_users(filename='users.csv'):
+    """Read users from users.csv file."""
     global _users
     _users = dict()
-    with open('users.csv') as f:
+    with open(filename) as f:
         reader = csv.DictReader(f, delimiter=';')
         for u in reader:
             _users[u['gitlab_username']] = u['youtrack_username']
 
 
 def get_user_by_login(login, default_user=youtrack_default_user):
+    """Get YouTrack user login by GitLab username."""
     if _users is None:
         read_users()
 
@@ -56,6 +52,8 @@ def get_user_by_login(login, default_user=youtrack_default_user):
 
 
 def yt_create_users(users):
+    """Create groups and users in YouTrack."""
+
     # create group and add all users
     try:
         youtrack._put('/admin/group/%s?autoJoin=true' % 'admins')
@@ -87,10 +85,11 @@ def yt_create_users(users):
                 raise e
 
 
-def read_projects():
+def read_projects(filename='projects.csv'):
+    """Read projects from projects.csv file."""
     global _projects
     _projects = dict()
-    with open('projects.csv') as f:
+    with open(filename) as f:
         reader = csv.DictReader(f, delimiter=';')
         for p in reader:
             _projects[p['gitlab_project_pattern']] = {
@@ -100,6 +99,7 @@ def read_projects():
 
 
 def get_project_by_pattern(project_name):
+    """Find YouTrack project name by GitLab project name."""
     if _projects is None:
         read_projects()
 
@@ -110,34 +110,8 @@ def get_project_by_pattern(project_name):
     raise ValueError('Project name does not match any pattern!')
 
 
-def yt_create_projects(projects):
-    print()
-    print('Creating projects...')
-
-    already_created = []
-
-    for project in projects.values():
-        project_id = project['youtrack_project_id']
-        project_name = project['youtrack_project_name']
-
-        if project_id in already_created:
-            continue
-
-        try:
-            youtrack.create_project_detailed(project_id, project_name, project_name, youtrack_login)
-            # yt_project = youtrack.get_project(project_id)
-            print('*', project_id)
-            already_created.append(project_id)
-        except YouTrackException as e:
-            if e.response.status in (409,):
-                print('*', project_id, 'already exists')
-                already_created.append(project_id)
-            else:
-                print('*', project_id, 'error:')
-                raise e
-
-
 def yt_create_subsystems():
+    """Create YouTrack subsystems."""
     gl_projects = gl.projects.list(page=1, per_page=gitlab_per_page)
 
     print()
@@ -157,7 +131,8 @@ def yt_create_subsystems():
                 raise e
 
 
-def yt_create_customfields():
+def yt_create_custom_fields():
+    """Create YouTrack custom fields."""
     def create_custom_field(name, field_type):
         print(f'Creating custom field {name}... ', end='')
         try:
@@ -202,12 +177,40 @@ def yt_create_customfields():
         create_custom_field(**field)
 
 
+def yt_create_projects(projects):
+    """Create YouTrack projects."""
+    print()
+    print('Creating projects...')
+
+    already_created = []
+
+    for project in projects.values():
+        project_id = project['youtrack_project_id']
+        project_name = project['youtrack_project_name']
+
+        if project_id in already_created:
+            continue
+
+        try:
+            youtrack.create_project_detailed(project_id, project_name, project_name, youtrack_login)
+            # yt_project = youtrack.get_project(project_id)
+            print('*', project_id)
+            already_created.append(project_id)
+        except YouTrackException as e:
+            if e.response.status in (409,):
+                print('*', project_id, 'already exists')
+                already_created.append(project_id)
+            else:
+                print('*', project_id, 'error:')
+                raise e
+
+
 # init script
 read_users()
 read_projects()
 
 yt_create_users(_users)
-yt_create_customfields()
+yt_create_custom_fields()
 yt_create_projects(_projects)
 yt_create_subsystems()
 
@@ -221,11 +224,10 @@ note_count = 0
 gitlab_users = []
 
 
-# auth in browser
-browser = get_gitlab_session(gitlab_url, gitlab_login, gitlab_password)
+# authenticate in GitLab via requests to download files
+file_downloader = get_gitlab_session(gitlab_url, gitlab_login, gitlab_password)
 
 
-# print(gl_projects)
 for p in gl_projects:
     project_count += 1
 
@@ -237,8 +239,6 @@ for p in gl_projects:
     print()
     print('=' * 80)
     print(project_id, project_path)
-    # pprint(p)
-    # exit()
 
     for issue in issues:
         issue_count += 1
@@ -258,7 +258,6 @@ for p in gl_projects:
         subsystem = project_path
         state = 'fixed' if issue.state == 'closed' else None
 
-        # pprint(issue)
         print(f" * [{issue.author['username']}, {issue.iid}] {summary}")
 
         files = get_attachments_urls(description)
@@ -269,7 +268,7 @@ for p in gl_projects:
                 url = p.web_url + relative_url + f'?access_token={gitlab_api_token}'
                 headers = {'PRIVATE-TOKEN': gitlab_api_token}
                 print('   FILE:', url)
-                r = browser.get(url, headers=headers)
+                r = file_downloader.get(url, headers=headers)
 
                 description = description.replace(relative_url, file_name)
 
