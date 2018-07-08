@@ -86,6 +86,7 @@ def yt_create_users(users):
                                           email=email,
                                           jabber='',
                                           password=password)
+            print('OK')
         except YouTrackException as e:
             if e.response.status in (409,):
                 print('exists')
