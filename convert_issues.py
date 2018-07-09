@@ -221,6 +221,25 @@ read_projects()
 
 yt_create_users(_users)
 yt_create_custom_fields()
+input("Now create add values to (autojoin) custom field 'Type' (Тип): Тех.долг, Замечание, Улучшение ядра...")
+input("Now create add values to (autojoin) custom field 'State' (Состояние):\n"
+      " * Сделать;\n"
+      " * Отложено;\n"
+      " * Проверка;\n"
+      " * Тестирование;\n"
+      " * Правка;\n"
+      " * Принято заказчиком;\n"
+      " * Оценка;\n"
+      " * Выполняется;\n"
+      " * Вопрос;\n"
+      " * Открыта повторно;\n"
+      " * Ожидание заказчика;\n"
+      " * Исправить;\n"
+      " * Исправление не планируется;\n"
+      " * Неполная;\n"
+      " * Выполнено;\n"
+      " * Протестировано.\n"
+      "Press Enter when done.")
 yt_create_projects(_projects)
 yt_create_subsystems()
 
@@ -278,7 +297,8 @@ for p in gl_projects:
         description = replace_usernames(replace_numbered_checkboxes(issue.description), _users)
 
         subsystem = project_path
-        state = 'fixed' if issue.state == 'closed' else None
+
+        # state = 'fixed' if issue.state == 'closed' else None
 
         print(f" * [{issue.author['username']}, {issue.iid}] {summary}")
 
@@ -304,12 +324,33 @@ for p in gl_projects:
         yt_project = get_project_by_pattern(p.name)
         yt_project_id = yt_project['youtrack_project_id']
         response = session.create_issue(project=yt_project_id,
-                                         assignee=assignee,
-                                         summary=summary,
-                                         description=description,
-                                         subsystem=subsystem,
-                                         state=state)
+                                        assignee=assignee,
+                                        summary=summary,
+                                        description=description,
+                                        subsystem=subsystem,
+                                        state=None)
         yt_issue_id = response[0]['location'].split('/')[-1]
+
+        # set state field
+        if issue.state == 'fixed':
+            customfield_state = 'Выполнено'
+        elif issue.state == 'opened' and 'Doing' in issue.labels:
+            customfield_state = 'Выполняется'
+        else:
+            customfield_state = 'Сделать'
+        youtrack.execute_command(yt_issue_id, f'Состояние {customfield_state}')
+
+        # set type field
+        if 'Функционал' in issue.labels:
+            customfield_type = 'Функционал'
+        elif 'от заказчика' in issue.labels:
+            customfield_type = 'Замечание'
+        elif 'улучшение ядра' in issue.labels:
+            customfield_type = 'Улучшение ядра'
+        else:
+            customfield_type = ''
+        if customfield_type:
+            youtrack.execute_command(yt_issue_id, f'Тип {customfield_type}')
 
         for f in attach:
             youtrack.create_attachment(yt_issue_id, **f)
