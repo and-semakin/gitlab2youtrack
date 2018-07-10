@@ -122,7 +122,7 @@ def get_project_by_pattern(project_name):
 
 def yt_create_subsystems():
     """Create YouTrack subsystems."""
-    gl_projects = gl.projects.list(page=1, per_page=gitlab_per_page)
+    gl_projects = gl.projects.list(all=True)
 
     print()
     print('Creating subsystems...')
@@ -233,31 +233,24 @@ read_projects()
 
 yt_create_users(_users)
 yt_create_custom_fields()
-input("Now create add values to (autojoin) custom field 'Type' (Тип): Тех.долг, Замечание, Улучшение ядра...")
+input("Now create add values to (autojoin) custom field 'Type' (Тип):\n"
+      " * Функционал;\n"
+      " * Тех.долг;\n"
+      " * Замечание;\n"
+      " * Улучшение ядра;\n"
+      " * Рефакторинг.\n"
+      "Press Enter when done...")
 input("Now create add values to (autojoin) custom field 'State' (Состояние):\n"
       " * Сделать;\n"
-      " * Отложено;\n"
-      " * Проверка;\n"
-      " * Тестирование;\n"
-      " * Правка;\n"
-      " * Принято заказчиком;\n"
-      " * Оценка;\n"
       " * Выполняется;\n"
-      " * Вопрос;\n"
-      " * Открыта повторно;\n"
-      " * Ожидание заказчика;\n"
-      " * Исправить;\n"
-      " * Исправление не планируется;\n"
-      " * Неполная;\n"
-      " * Выполнено;\n"
-      " * Протестировано.\n"
-      "Press Enter when done.")
+      " * Выполнено.\n"
+      "Press Enter when done...")
 yt_create_projects(_projects, _users)
 yt_create_subsystems()
 
 
 # list gitlab projects
-gl_projects = gl.projects.list(page=1, per_page=gitlab_per_page)
+gl_projects = gl.projects.list(all=True)
 
 project_count = 0
 issue_count = 0
@@ -283,7 +276,7 @@ for p in gl_projects:
 
     project_id = p.id
     project_path = p.path
-    issues = p.issues.list(page=1, per_page=gitlab_per_page, state='opened', order_by='created_at', sort='asc')
+    issues = p.issues.list(all=True, order_by='created_at', sort='asc')
 
     # print project name
     print()
@@ -344,7 +337,7 @@ for p in gl_projects:
         yt_issue_id = response[0]['location'].split('/')[-1]
 
         # set state field
-        if issue.state == 'fixed':
+        if issue.state == 'closed':
             customfield_state = 'Выполнено'
         elif issue.state == 'opened' and 'Doing' in issue.labels:
             customfield_state = 'Выполняется'
@@ -369,7 +362,7 @@ for p in gl_projects:
 
         issue_time_spent = timedelta()
 
-        notes = issue.notes.list(page=1, per_page=gitlab_per_page, order_by='created_at', sort='asc')
+        notes = issue.notes.list(all=True, order_by='created_at', sort='asc')
         for note in notes:
             note_count_total += 1
 
