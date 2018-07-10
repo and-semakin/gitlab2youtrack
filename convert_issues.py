@@ -187,7 +187,7 @@ def yt_create_custom_fields():
         create_custom_field(**field)
 
 
-def yt_create_projects(projects):
+def yt_create_projects(projects, users):
     """Create YouTrack projects."""
     print()
     print('Creating projects...')
@@ -213,6 +213,18 @@ def yt_create_projects(projects):
             else:
                 print('*', project_id, 'error:')
                 raise e
+
+        # join users to project
+        for u in users.values():
+            try:
+                youtrack.set_user_group(u['username'], project_name + ' Team')
+                print(f"  * {u['username']}")
+            except YouTrackException as e:
+                if e.response.status in (409,):
+                    pass
+                else:
+                    print(f"* {project_id} joining user {u['username']} error:")
+                    raise e
 
 
 # init script
@@ -240,7 +252,7 @@ input("Now create add values to (autojoin) custom field 'State' (Состоян�
       " * Выполнено;\n"
       " * Протестировано.\n"
       "Press Enter when done.")
-yt_create_projects(_projects)
+yt_create_projects(_projects, _users)
 yt_create_subsystems()
 
 
