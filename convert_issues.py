@@ -268,6 +268,7 @@ youtrack_session = {}
 
 # check YouTrack passwords before doing any work
 for yt_credentials in _users.values():
+    print(f"Checking password for {yt_credentials['username']}...")
     youtrack_session[yt_credentials['username']] = Connection(
         youtrack_url, yt_credentials['username'], yt_credentials['password'])
 
