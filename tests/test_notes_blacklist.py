@@ -26,6 +26,9 @@ from utils.notes_blacklist import is_blacklisted
         ('changed time estimate to 2d', True),
         ('changed title from **Разработка сервиса ЕПГУ (Екб)** to **Разработка сервиса ЕПГУ (Е{+ЖД, Е+}кб)**', True),
         ('created branch [`7-`](https://gitlab.ezmp.kbinform.ru/ezmp/chel/compare/development...7-)', True),
+        ('created branch [`1-razvernut-modul-mezhvedomstvennyh-zaprosov`](master...'
+         '1-razvernut-modul-mezhvedomstvennyh-zaprosov)', True),
+        ('created branch [`1-sdk`](master...1-sdk)', True),
         ('marked the task **Добавить столбец "Источник"** as completed', True),
         ('marked the task **В табличные формы мастера (в работе/отработано) добавить столбец '
          '"Фактическая дата" (это дата последней смены статуса)** as completed', True),

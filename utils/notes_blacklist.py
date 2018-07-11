@@ -17,7 +17,7 @@ patterns = [
     re.compile(r'changed title from \*\*.+\*\* to \*\*.+\*\*'),
     re.compile(r'marked the task \*\*.+\*\* as completed'),
     re.compile(r'marked the task \*\*.+\*\* as incomplete'),
-    re.compile(r'created branch \[`\d+-`\]\(.+\)'),
+    re.compile(r'created branch \[\s*`\d+-[\w_-]*`\s*\]\(.+\)'),
 
     re.compile(r'added (\d{1,2}d)?\s?(\d{1,2}h)?\s?(\d{1,2}m)? of time spent at \d{4}-\d{2}-\d{2}'),
 
@@ -25,9 +25,9 @@ patterns = [
     re.compile(r'mentioned in merge request !\d+'),
     re.compile(r'mentioned in commit \w{40}'),
 
-    re.compile(r'added( ~\d+)+ label(s)?'),
-    re.compile(r'removed ~\d+ label'),
-    re.compile(r'added( ~\d+)+ and removed( ~\d+)+ labels'),
+    re.compile(r'added( [\w_-]*~\d+)+ label(s)?'),
+    re.compile(r'removed( [\w_-]*~\d+)+ label(s)?'),
+    re.compile(r'added( [\w_-]*~\d+)+ and removed( [\w_-]*~\d+)+ labels'),
 ]
 
 
