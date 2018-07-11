@@ -15,6 +15,8 @@ from utils.notes_blacklist import is_blacklisted
         ('unassigned @gagara11', True),
         ('assigned to @katuxa', True),
 
+        ('moved to technical-tasks#3', True),
+        ('moved to external-application#1', True),
         ('closed', True),
         ('closed via commit e29b8773411bb43b9232e27be15789af6ceeb545', True),
         ('closed via merge request !32', True),
@@ -27,12 +29,16 @@ from utils.notes_blacklist import is_blacklisted
         ('marked the task **Добавить столбец "Источник"** as completed', True),
         ('marked the task **В табличные формы мастера (в работе/отработано) добавить столбец '
          '"Фактическая дата" (это дата последней смены статуса)** as completed', True),
+        ('marked the task **Требуется сохранение печатной формы разрешения в формат Excel. '
+         'По кнопке печать оставить и предыдущий вариант "Разрешение (DOC)" и добавить новый '
+         '"Разрешение (EXCEL)" (IgnatevYG DovgalIV)** as incomplete', True),
 
         ('added 1h 30m of time spent at 2018-05-29', True),
 
         ('mentioned in issue #114', True),
         ('mentioned in issue chel-taxi#7', True),
         ('mentioned in merge request !41', True),
+        ('mentioned in commit 6bd887d8909f3cb01c79f9f3a99ed13f66998951', True),
 
         ('added ~221 and removed ~88 labels', True),
         ('added ~91 ~221 and removed ~88 labels', True),
