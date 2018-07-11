@@ -178,6 +178,10 @@ def yt_create_custom_fields():
             'field_type': 'period'
         },
         {
+            'name': 'Estimate time',
+            'field_type': 'period'
+        },
+        {
             'name': 'Бэклог',
             'field_type': 'state[1]'
         },
@@ -360,7 +364,17 @@ for p in gl_projects:
         for f in attach:
             youtrack.create_attachment(yt_issue_id, **f)
 
-        issue_time_spent = timedelta()
+        # update spent time on issue
+        issue_time_spent = timedelta(seconds=issue.time_stats()['total_time_spent'] or 0)
+        youtrack.execute_command(yt_issue_id, 'Длительность {ts}'.format(
+            ts=timedelta_to_string(issue_time_spent)
+        ))
+
+        # update estimate time on issue
+        issue_time_estimate = timedelta(seconds=issue.time_stats()['time_estimate'] or 0)
+        youtrack.execute_command(yt_issue_id, 'Estimate time {ts}'.format(
+            ts=timedelta_to_string(issue_time_estimate)
+        ))
 
         notes = issue.notes.list(all=True, order_by='created_at', sort='asc')
         for note in notes:
@@ -410,16 +424,6 @@ for p in gl_projects:
 
             for f in attach:
                 youtrack.create_attachment(yt_issue_id, **f)
-
-            note_time_spent = get_time_spent(text)
-            issue_time_spent += note_time_spent
-            if note_time_spent:
-                print('     *** Time spent detected in text:', text, note_time_spent)
-
-        # update spent time on issue
-        youtrack.execute_command(yt_issue_id, 'Длительность {ts}'.format(
-            ts=timedelta_to_string(issue_time_spent)
-        ))
 
 print('project_count', project_count)
 print('issue_count', issue_count)
