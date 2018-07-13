@@ -283,6 +283,9 @@ for p in gl_projects:
     project_path = p.path
     issues = p.issues.list(all=True, order_by='created_at', sort='asc')
 
+    yt_project = get_project_by_pattern(p.name)
+    yt_project_id = yt_project['youtrack_project_id']
+
     # print project name
     print()
     print('=' * 80)
@@ -331,8 +334,6 @@ for p in gl_projects:
                     }
                 })
 
-        yt_project = get_project_by_pattern(p.name)
-        yt_project_id = yt_project['youtrack_project_id']
         response = session.create_issue(project=yt_project_id,
                                         assignee=assignee,
                                         summary=summary,
